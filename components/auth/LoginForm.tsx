@@ -19,6 +19,7 @@ import { Button } from "../ui/button";
 import { FormError } from "../FormError";
 import { FormSuccess } from "../FormSuccess";
 import { login } from "@/actions/login";
+import { set } from "zod";
 
 function LoginForm() {
   const [error, setError] = useState<string | undefined>("");
@@ -45,6 +46,7 @@ function LoginForm() {
       login(data).then((res) => {
         //setSuccess(res.success);
         setError(res?.error);
+        setSuccess(res?.success);
       });
     });
   }

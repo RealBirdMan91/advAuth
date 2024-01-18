@@ -1,21 +1,28 @@
 import { nanoid } from "nanoid";
-import { getVerificationTokenByEmail } from "@/data/verifivationToken";
+import { getVerificationTokenByEmail } from "@/data/verificationToken";
 import { db } from "./db";
 
-export async function generateVerificationToken(email: string) {
+export const generateVerificationToken = async (email: string) => {
   const token = nanoid(32);
-  const expires = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
+  const expires = new Date(new Date().getTime() + 3600 * 1000);
 
-  const verificationToken = await getVerificationTokenByEmail(email);
+  const existingToken = await getVerificationTokenByEmail(email);
 
-  if (verificationToken) {
-    await db.verificationToken.delete({ where: { email } });
+  if (existingToken) {
+    await db.verificationToken.delete({
+      where: {
+        id: existingToken.id,
+      },
+    });
   }
-  await db.verificationToken.create({
+
+  const verficationToken = await db.verificationToken.create({
     data: {
       email,
       token,
       expires,
     },
   });
-}
+
+  return verficationToken;
+};
