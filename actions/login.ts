@@ -17,7 +17,7 @@ import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema, TLoginSchema } from "@/schemas";
 import { AuthError } from "next-auth";
 
-export const login = async (values: TLoginSchema) => {
+export const login = async (values: TLoginSchema, callbackUrl?: string) => {
   const validatedFields = LoginSchema.safeParse(values);
 
   if (!validatedFields.success) {
@@ -86,7 +86,7 @@ export const login = async (values: TLoginSchema) => {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: DEFAULT_LOGIN_REDIRECT,
+      redirectTo: callbackUrl || DEFAULT_LOGIN_REDIRECT,
     });
   } catch (err) {
     if (err instanceof AuthError) {
