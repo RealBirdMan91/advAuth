@@ -1,16 +1,13 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import GitHub from "next-auth/providers/github";
-
 import authConfig from "./auth.config";
 import { db } from "@/lib/db";
 import { getUserById } from "./data/user";
+import { getTwoFactorConfirmationByUserId } from "./data/twoFactorConfirmation";
+import { UserRole } from "@prisma/client";
+import { boolean } from "zod";
+import { getAccountByUserId } from "./data/account";
 
-declare module "next-auth" {
-  interface User {
-    role: string;
-  }
-}
 /*
 Events: Ermöglichen es Ihnen, auf bestimmte Momente im Authentifizierungsprozess zu reagieren, ohne diesen Prozess direkt zu beeinflussen.
 Callbacks: Geben Ihnen die Kontrolle über den Authentifizierungsprozess, sodass Sie dessen Verhalten und Ergebnisse direkt beeinflussen können.
@@ -45,7 +42,7 @@ export const {
       // Prevent sign in without email verification
       if (!existingUser?.emailVerified) return false;
 
-      /*  if (existingUser.isTwoFactorEnabled) {
+      if (existingUser.isTwoFactorEnabled) {
         const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(
           existingUser.id
         );
@@ -57,21 +54,32 @@ export const {
           where: { id: twoFactorConfirmation.id },
         });
       }
- */
+
       return true;
     },
     async session({ session, token }) {
       if (session.user && token.sub && token.role) {
         session.user.id = token.sub;
-        session.user.role = token.role as string;
+        session.user.role = token.role as UserRole;
+        session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean;
+        session.user.name = token.name;
+        session.user.email = token.email;
+        session.user.isOAuth = token.isOAuth as boolean;
       }
       return session;
     },
     async jwt({ token }) {
       if (!token.sub) return token;
       const existingUser = await getUserById(token.sub);
+
       if (existingUser) {
+        const existingAccount = await getAccountByUserId(existingUser.id);
+
+        token.name = existingUser.name;
+        token.email = existingUser.email;
         token.role = existingUser.role;
+        token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
+        token.isOAuth = !!existingAccount;
       }
       return token;
     },
